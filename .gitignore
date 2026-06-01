@@ -1,0 +1,40 @@
+# ─── Python ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ─── Sanal ortam ──────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ─── Ortam / gizli anahtarlar (ASLA commit etme) ──────────
+.env
+.env.local
+.env.*.local
+# NOT: .env.example bilerek izlenir (şablon olarak commit edilir)
+
+# ─── Runtime veri (otomatik üretilir, kalıcı değil) ───────
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# ─── Claude Code (kişisel makine ayarları) ────────────────
+.claude/settings.local.json
+
+# ─── İşletim sistemi / IDE ────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
