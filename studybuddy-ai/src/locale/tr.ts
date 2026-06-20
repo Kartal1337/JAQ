@@ -1,0 +1,184 @@
+/**
+ * Tüm Türkçe arayüz metinleri tek dosyada.
+ * İleride i18n eklenirse buradan başka dillere genişletilebilir.
+ */
+
+export const tr = {
+  appName: 'StudyBuddy AI',
+  tagline: 'Ders Arkadaşın 🚀',
+
+  tabs: {
+    home: 'Ana Sayfa',
+    timer: 'Pomodoro',
+    chat: 'AI Koç',
+    history: 'İlerleme',
+    profile: 'Profil',
+  },
+
+  onboarding: {
+    welcomeTitle: 'StudyBuddy AI’a Hoş Geldin! 👋',
+    welcomeSubtitle:
+      'Pomodoro tekniği + yapay zeka koçunla daha verimli çalış, streak’ini büyüt!',
+    nameLabel: 'Adın ne?',
+    namePlaceholder: 'Örn. Elif',
+    levelLabel: 'Hangi seviyedesin?',
+    interestsLabel: 'Hangi derslere odaklanıyorsun?',
+    interestsHint: 'Birden fazla seçebilirsin',
+    next: 'Devam Et',
+    start: 'Hadi Başlayalım!',
+    skip: 'Geç',
+  },
+
+  levels: [
+    { id: 'lise9', label: '9. Sınıf' },
+    { id: 'lise10', label: '10. Sınıf' },
+    { id: 'lise11', label: '11. Sınıf' },
+    { id: 'lise12', label: '12. Sınıf' },
+    { id: 'mezun', label: 'Mezun (YKS)' },
+    { id: 'universite', label: 'Üniversite' },
+  ],
+
+  subjects: [
+    { id: 'matematik', label: 'Matematik', emoji: '📐' },
+    { id: 'turkce', label: 'Türkçe', emoji: '📖' },
+    { id: 'fizik', label: 'Fizik', emoji: '⚛️' },
+    { id: 'kimya', label: 'Kimya', emoji: '🧪' },
+    { id: 'biyoloji', label: 'Biyoloji', emoji: '🧬' },
+    { id: 'tarih', label: 'Tarih', emoji: '🏛️' },
+    { id: 'cografya', label: 'Coğrafya', emoji: '🗺️' },
+    { id: 'edebiyat', label: 'Edebiyat', emoji: '✍️' },
+    { id: 'ingilizce', label: 'İngilizce', emoji: '🇬🇧' },
+    { id: 'felsefe', label: 'Felsefe', emoji: '💭' },
+    { id: 'geometri', label: 'Geometri', emoji: '📏' },
+    { id: 'kodlama', label: 'Kodlama', emoji: '💻' },
+  ],
+
+  home: {
+    greetingMorning: 'Günaydın',
+    greetingAfternoon: 'İyi günler',
+    greetingEvening: 'İyi akşamlar',
+    streakTitle: 'Günlük Seri',
+    streakDays: 'gün',
+    streakZero: 'Bugün başla, serini kur! 🔥',
+    todayFocus: 'Bugünkü Odak',
+    minutesShort: 'dk',
+    quickStart: 'Hızlı Pomodoro Başlat',
+    quickStartSub: '25 dakikalık odak seansı',
+    aiSuggestTitle: 'Bugün ne çalışayım?',
+    aiSuggestButton: 'AI’dan öneri al',
+    aiSuggestLoading: 'Senin için plan hazırlanıyor...',
+    pomodorosToday: 'Bugünkü Pomodoro',
+    quoteTitle: 'Günün Sözü',
+  },
+
+  timer: {
+    title: 'Odak Zamanı',
+    focus: 'Odaklan',
+    shortBreak: 'Kısa Mola',
+    longBreak: 'Uzun Mola',
+    start: 'Başla',
+    pause: 'Duraklat',
+    resume: 'Devam Et',
+    finish: 'Bitir',
+    reset: 'Sıfırla',
+    topicLabel: 'Bu seansta ne çalışıyorsun?',
+    topicPlaceholder: 'Örn. Türev konu tekrarı',
+    modeLabel: 'Mod Seç',
+    mode2505: '25 / 5',
+    mode5010: '50 / 10',
+    sessionDone: 'Seans tamamlandı! 🎉',
+    breakDone: 'Mola bitti, hadi devam! 💪',
+    keepFocus: 'Odağını koru',
+    remaining: 'kalan',
+  },
+
+  chat: {
+    title: 'AI Koç',
+    subtitle: 'Kanka, takıldığın yeri sor 😎',
+    placeholder: 'Bir şey sor... (örn. türev nedir?)',
+    send: 'Gönder',
+    thinking: 'Düşünüyor...',
+    emptyTitle: 'Selam! Ben senin AI koçunum 🤖',
+    emptySubtitle:
+      'Konu anlatımı, soru çözümü, özet ya da quiz... ne istersen yardımcı olurum. Hadi başlayalım!',
+    noApiKey: 'AI’ı kullanmak için önce Profil > API Anahtarı bölümünden anahtarını gir.',
+    goToSettings: 'Ayarlara Git',
+    errorGeneric: 'Bir sorun oldu, tekrar dener misin?',
+    quickActions: {
+      summarize: 'Özetle',
+      ask: 'Soru Sor',
+      quiz: 'Quiz Hazırla',
+      solve: 'Adım Adım Çöz',
+    },
+    sessionContext: 'Aktif seans',
+  },
+
+  history: {
+    title: 'İlerlemen',
+    weekly: 'Haftalık',
+    monthly: 'Aylık',
+    totalFocus: 'Toplam Odak',
+    totalPomodoros: 'Toplam Pomodoro',
+    bestDay: 'En İyi Gün',
+    topSubjects: 'En Çok Çalıştığın Konular',
+    noData: 'Henüz veri yok. İlk pomodoronu tamamla! 🍅',
+    hours: 'saat',
+    minutes: 'dakika',
+    days: ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'],
+  },
+
+  profile: {
+    title: 'Profil',
+    editName: 'Adı Düzenle',
+    stats: 'İstatistikler',
+    streak: 'Seri',
+    totalHours: 'Toplam Saat',
+    totalSessions: 'Toplam Seans',
+    achievements: 'Başarımlar',
+    settings: 'Ayarlar',
+    apiKey: 'AI API Anahtarı',
+    apiKeyPlaceholder: 'sk-... / xai-... anahtarını yapıştır',
+    apiProvider: 'AI Sağlayıcı',
+    apiKeySaved: 'Anahtar kaydedildi ✅',
+    apiKeyHelp:
+      'Anahtarın yalnızca cihazında saklanır, hiçbir sunucuya gönderilmez.',
+    notifications: 'Bildirimler',
+    notificationsSub: 'Pomodoro bitince haber ver',
+    sound: 'Ses & Titreşim',
+    save: 'Kaydet',
+    resetData: 'Tüm Verileri Sıfırla',
+    resetConfirm: 'Emin misin? Tüm ilerlemen silinecek.',
+    cancel: 'İptal',
+    delete: 'Sil',
+    version: 'Sürüm',
+    madeWith: 'Türkiyeli öğrenciler için ❤️ ile yapıldı',
+  },
+
+  achievements: {
+    firstPomodoro: { title: 'İlk Adım', desc: 'İlk pomodoronu tamamladın', emoji: '🌱' },
+    streak3: { title: 'Isınıyoruz', desc: '3 günlük seri', emoji: '🔥' },
+    streak7: { title: 'Haftalık Kahraman', desc: '7 günlük seri', emoji: '⚡' },
+    streak30: { title: 'Disiplin Ustası', desc: '30 günlük seri', emoji: '👑' },
+    focus10h: { title: 'Maraton', desc: 'Toplam 10 saat odak', emoji: '🏃' },
+    pomodoro50: { title: 'Domates Avcısı', desc: '50 pomodoro', emoji: '🍅' },
+    nightOwl: { title: 'Gece Kuşu', desc: 'Gece 00:00 sonrası çalıştın', emoji: '🦉' },
+    earlyBird: { title: 'Erkenci Kuş', desc: 'Sabah 06:00 öncesi çalıştın', emoji: '🐦' },
+  },
+
+  notification: {
+    focusDoneTitle: 'Pomodoro Bitti! 🎉',
+    focusDoneBody: 'Harika iş! Şimdi kısa bir mola ver. 🧘',
+    breakDoneTitle: 'Mola Bitti ⏰',
+    breakDoneBody: 'Hadi tekrar odaklanma zamanı! 💪',
+  },
+
+  common: {
+    loading: 'Yükleniyor...',
+    retry: 'Tekrar Dene',
+    close: 'Kapat',
+    ok: 'Tamam',
+  },
+} as const;
+
+export type Subject = (typeof tr.subjects)[number];
+export type Level = (typeof tr.levels)[number];
