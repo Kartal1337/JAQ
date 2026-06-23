@@ -9,12 +9,14 @@ import { Txt } from '@/components/Txt';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { StatTile } from '@/components/StatTile';
+import { CountdownCard } from '@/components/CountdownCard';
 import { useStore } from '@/store/useStore';
 import { tr } from '@/locale/tr';
 import { gradients, palette, radius, spacing } from '@/theme/theme';
 import { formatMinutes } from '@/lib/date';
 import { todayMinutes, todayPomodoros } from '@/lib/stats';
 import { getQuoteOfTheDay } from '@/constants/quotes';
+import { daysUntil, upcomingYksYears } from '@/lib/countdown';
 import { suggestStudyPlan } from '@/lib/ai';
 
 function greeting(): string {
@@ -33,6 +35,15 @@ export default function Home() {
   const tMin = useMemo(() => todayMinutes(sessions), [sessions]);
   const tPomo = useMemo(() => todayPomodoros(sessions), [sessions]);
   const quote = useMemo(() => getQuoteOfTheDay(), []);
+
+  // Hedef sınav: profilde yoksa en yakın YKS'yi varsayılan al
+  const exam = useMemo(() => {
+    if (profile.examDate && profile.examLabel) {
+      return { dateKey: profile.examDate, label: profile.examLabel };
+    }
+    const next = upcomingYksYears(1)[0];
+    return { dateKey: next.dateKey, label: next.label };
+  }, [profile.examDate, profile.examLabel]);
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiPlan, setAiPlan] = useState<string | null>(null);
@@ -57,6 +68,8 @@ export default function Home() {
         apiKey: settings.apiKey,
         level: levelLabel,
         interests: interestLabels,
+        daysLeft: daysUntil(exam.dateKey),
+        examLabel: exam.label,
       });
       setAiPlan(plan);
     } catch (e) {
@@ -78,6 +91,11 @@ export default function Home() {
             {profile.name || 'Öğrenci'} 👋
           </Txt>
         </View>
+      </Animated.View>
+
+      {/* YKS geri sayımı */}
+      <Animated.View entering={FadeInDown.delay(40).duration(400)} style={styles.countdownWrap}>
+        <CountdownCard dateKey={exam.dateKey} label={exam.label} />
       </Animated.View>
 
       {/* Streak banner */}
@@ -204,6 +222,7 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   header: { marginTop: spacing.sm, marginBottom: spacing.lg },
+  countdownWrap: { marginBottom: spacing.lg },
   streakCard: {
     borderRadius: radius.xl,
     padding: spacing.xl,

@@ -24,9 +24,20 @@ export const tr = {
     levelLabel: 'Hangi seviyedesin?',
     interestsLabel: 'Hangi derslere odaklanıyorsun?',
     interestsHint: 'Birden fazla seçebilirsin',
+    examLabel: 'Hangi YKS’ye hazırlanıyorsun?',
+    examHint: 'Tarihi sonra Profil’den ayarlayabilirsin',
     next: 'Devam Et',
     start: 'Hadi Başlayalım!',
     skip: 'Geç',
+  },
+
+  countdown: {
+    cardTitle: 'Hedefe Kalan',
+    days: 'gün',
+    daysLeft: 'gün kaldı',
+    weeksShort: 'hafta',
+    today: 'Sınav günü bugün!',
+    setTarget: 'Hedef sınavını seç',
   },
 
   levels: [
@@ -139,6 +150,8 @@ export const tr = {
     apiKey: 'AI API Anahtarı',
     apiKeyPlaceholder: 'sk-... / xai-... anahtarını yapıştır',
     apiProvider: 'AI Sağlayıcı',
+    examTarget: 'Hedef YKS',
+    examDateLabel: 'Sınav Tarihi (gün / ay / yıl)',
     apiKeySaved: 'Anahtar kaydedildi ✅',
     apiKeyHelp:
       'Anahtarın yalnızca cihazında saklanır, hiçbir sunucuya gönderilmez.',

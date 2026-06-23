@@ -15,6 +15,7 @@ import { palette, radius, spacing } from '@/theme/theme';
 import { formatMinutes } from '@/lib/date';
 import { totalMinutes } from '@/lib/stats';
 import { ACHIEVEMENTS } from '@/lib/achievements';
+import { getCountdown, upcomingYksYears } from '@/lib/countdown';
 
 const PROVIDERS: { id: AIProvider; label: string }[] = [
   { id: 'openai', label: 'OpenAI' },
@@ -38,6 +39,15 @@ export default function Profile() {
   const [saved, setSaved] = useState(false);
 
   const total = totalMinutes(sessions);
+  const examOptions = upcomingYksYears(3);
+  const examLeft = profile.examDate ? getCountdown(profile.examDate).days : null;
+
+  const setExamYear = (year: number) => {
+    const opt = examOptions.find((e) => e.year === year);
+    if (!opt) return;
+    Haptics.selectionAsync().catch(() => {});
+    updateProfile({ examDate: opt.dateKey, examLabel: opt.label });
+  };
 
   const save = () => {
     updateProfile({ name: name.trim() || profile.name });
@@ -123,6 +133,22 @@ export default function Profile() {
           placeholderTextColor={palette.textFaint}
           style={styles.input}
         />
+
+        {/* Hedef YKS */}
+        <Txt variant="small" weight="semibold" tone="muted" style={styles.fieldLabel}>
+          {tr.profile.examTarget}
+          {examLeft != null ? `  ·  ${examLeft} ${tr.countdown.days}` : ''}
+        </Txt>
+        <View style={styles.providerRow}>
+          {examOptions.map((opt) => (
+            <Chip
+              key={opt.year}
+              label={opt.label}
+              selected={profile.examLabel === opt.label}
+              onPress={() => setExamYear(opt.year)}
+            />
+          ))}
+        </View>
 
         {/* AI sağlayıcı */}
         <Txt variant="small" weight="semibold" tone="muted" style={styles.fieldLabel}>

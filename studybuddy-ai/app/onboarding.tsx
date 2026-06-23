@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import Animated, { FadeIn, FadeOut, SlideInRight } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { Button } from '@/components/Button';
@@ -10,14 +9,20 @@ import { Chip } from '@/components/Chip';
 import { useStore } from '@/store/useStore';
 import { tr } from '@/locale/tr';
 import { palette, radius, spacing } from '@/theme/theme';
+import { upcomingYksYears } from '@/lib/countdown';
+
+const LAST_STEP = 3;
 
 export default function Onboarding() {
   const completeOnboarding = useStore((s) => s.completeOnboarding);
+
+  const examOptions = useMemo(() => upcomingYksYears(3), []);
 
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [levelId, setLevelId] = useState('lise12');
   const [interests, setInterests] = useState<string[]>([]);
+  const [examYear, setExamYear] = useState(examOptions[0].year);
 
   const toggleInterest = (id: string) =>
     setInterests((prev) =>
@@ -25,10 +30,23 @@ export default function Onboarding() {
     );
 
   const canNext =
-    step === 0 ? name.trim().length > 0 : step === 1 ? !!levelId : interests.length > 0;
+    step === 0
+      ? name.trim().length > 0
+      : step === 1
+      ? !!levelId
+      : step === 2
+      ? interests.length > 0
+      : true;
 
   const finish = () => {
-    completeOnboarding({ name: name.trim(), levelId, interests });
+    const exam = examOptions.find((e) => e.year === examYear) ?? examOptions[0];
+    completeOnboarding({
+      name: name.trim(),
+      levelId,
+      interests,
+      examDate: exam.dateKey,
+      examLabel: exam.label,
+    });
     router.replace('/(tabs)');
   };
 
@@ -36,7 +54,7 @@ export default function Onboarding() {
     <Screen scroll>
       {/* Adım göstergesi */}
       <View style={styles.dots}>
-        {[0, 1, 2].map((i) => (
+        {[0, 1, 2, 3].map((i) => (
           <View
             key={i}
             style={[styles.dot, i <= step && styles.dotActive]}
@@ -107,6 +125,26 @@ export default function Onboarding() {
         </Animated.View>
       )}
 
+      {step === 3 && (
+        <Animated.View entering={SlideInRight} style={styles.stepWrap}>
+          <Txt variant="display" style={styles.bigEmoji}>🎯</Txt>
+          <Txt variant="h1" weight="black">{tr.onboarding.examLabel}</Txt>
+          <Txt variant="body" tone="muted" style={styles.subtitle}>
+            {tr.onboarding.examHint}
+          </Txt>
+          <View style={styles.chips}>
+            {examOptions.map((opt) => (
+              <Chip
+                key={opt.year}
+                label={opt.label}
+                selected={examYear === opt.year}
+                onPress={() => setExamYear(opt.year)}
+              />
+            ))}
+          </View>
+        </Animated.View>
+      )}
+
       <View style={styles.footer}>
         {step > 0 && (
           <Button
@@ -118,10 +156,10 @@ export default function Onboarding() {
           />
         )}
         <Button
-          label={step === 2 ? tr.onboarding.start : tr.onboarding.next}
-          icon={step === 2 ? 'rocket' : 'arrow-forward'}
+          label={step === LAST_STEP ? tr.onboarding.start : tr.onboarding.next}
+          icon={step === LAST_STEP ? 'rocket' : 'arrow-forward'}
           disabled={!canNext}
-          onPress={() => (step === 2 ? finish() : setStep((s) => s + 1))}
+          onPress={() => (step === LAST_STEP ? finish() : setStep((s) => s + 1))}
           style={{ flex: 1 }}
         />
       </View>

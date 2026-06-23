@@ -85,7 +85,7 @@ alınır ama UX için **kelime kelime "akıtılır"** (daktilo efekti).
 | Ekran | Nasıl test edilir |
 |-------|-------------------|
 | **Onboarding** | Uygulamayı ilk kez aç (veya Profil → Verileri Sıfırla). Ad gir, sınıf ve ders seç. |
-| **Ana Sayfa** | Streak, bugünkü odak ve pomodoro sayısının göründüğünü kontrol et. "Hızlı Pomodoro Başlat" timer'a götürmeli. AI önerisi için anahtar girilmiş olmalı. |
+| **Ana Sayfa** | En üstte **YKS geri sayımı** ("X gün kaldı"), streak, bugünkü odak ve pomodoro sayısı. "Hızlı Pomodoro Başlat" timer'a götürmeli. AI önerisi için anahtar girilmiş olmalı. |
 | **Pomodoro** | 25/5 ↔ 50/10 değiştir, **Başla** → halkanın dolduğunu izle. **Duraklat/Devam**, **Bitir** (≥1 dk sonra seans kaydedilir). Uygulamayı arka plana al, geri gel → süre doğru olmalı. Bittiğinde bildirim + kutlama. |
 | **AI Koç** | Profil'den anahtar gir. Bir soru yaz → cevabın akarak geldiğini gör. Hızlı aksiyonları (Özetle/Quiz/Çöz) dene. |
 | **İlerleme** | Birkaç pomodoro tamamla, haftalık grafiğin ve "en çok çalışılan konular"ın dolduğunu gör. |

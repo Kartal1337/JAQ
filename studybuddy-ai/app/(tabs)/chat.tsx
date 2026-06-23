@@ -17,6 +17,7 @@ import { useStore } from '@/store/useStore';
 import { tr } from '@/locale/tr';
 import { palette, radius, spacing } from '@/theme/theme';
 import { complete, COACH_SYSTEM_PROMPT, type ChatMessage } from '@/lib/ai';
+import { daysUntil } from '@/lib/countdown';
 
 interface UIMessage extends ChatMessage {
   id: string;
@@ -27,6 +28,7 @@ type QuickAction = keyof typeof tr.chat.quickActions;
 export default function ChatScreen() {
   const settings = useStore((s) => s.settings);
   const sessions = useStore((s) => s.sessions);
+  const profile = useStore((s) => s.profile);
 
   const { draft } = useLocalSearchParams<{ draft?: string }>();
   const activeTopic = sessions[0]?.topic;
@@ -43,11 +45,17 @@ export default function ChatScreen() {
 
   const sysPrompt = useMemo(() => {
     let p = COACH_SYSTEM_PROMPT;
+    if (profile.examDate) {
+      const left = daysUntil(profile.examDate);
+      if (left >= 0) {
+        p += `\n\nÖğrencinin hedef sınavı ${profile.examLabel ?? 'YKS'} ve sınava ${left} gün kaldı. Plan ve önceliklendirme yaparken bu süreyi dikkate al.`;
+      }
+    }
     if (activeTopic) {
       p += `\n\nÖğrencinin şu anki çalışma konusu: "${activeTopic}". İlgili olduğunda buna referans verebilirsin.`;
     }
     return p;
-  }, [activeTopic]);
+  }, [activeTopic, profile.examDate, profile.examLabel]);
 
   const scrollToEnd = () =>
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 60);

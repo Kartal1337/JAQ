@@ -178,10 +178,16 @@ export async function suggestStudyPlan(opts: {
   apiKey: string;
   level: string;
   interests: string[];
+  daysLeft?: number;
+  examLabel?: string;
 }): Promise<string> {
   const interestsText = opts.interests.length
     ? opts.interests.join(', ')
     : 'genel dersler';
+  const examText =
+    opts.daysLeft != null && opts.daysLeft >= 0
+      ? ` ${opts.examLabel ?? 'YKS'} sınavına ${opts.daysLeft} gün kaldı.`
+      : '';
   return complete({
     provider: opts.provider,
     apiKey: opts.apiKey,
@@ -189,7 +195,7 @@ export async function suggestStudyPlan(opts: {
       { role: 'system', content: COACH_SYSTEM_PROMPT },
       {
         role: 'user',
-        content: `Ben ${opts.level} seviyesindeyim ve şu derslere odaklanıyorum: ${interestsText}. Bugün için bana kısa, uygulanabilir bir çalışma planı öner. En fazla 4 madde, her madde için tahmini pomodoro sayısı yaz. Kısa ve motive edici ol.`,
+        content: `Ben ${opts.level} seviyesindeyim ve şu derslere odaklanıyorum: ${interestsText}.${examText} Bugün için bana kısa, uygulanabilir bir çalışma planı öner. En fazla 4 madde, her madde için tahmini pomodoro sayısı yaz. Kısa ve net ol.`,
       },
     ],
   });

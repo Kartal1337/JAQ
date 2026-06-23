@@ -22,6 +22,8 @@ export interface Profile {
   name: string;
   levelId: string;
   interests: string[]; // subject id'leri
+  examDate?: string; // hedef YKS tarihi (YYYY-MM-DD)
+  examLabel?: string; // "YKS 2027"
 }
 
 /** Bir derse ait deneme sonucu. */
