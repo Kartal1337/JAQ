@@ -27,7 +27,7 @@ export function totalMinutes(sessions: StudySession[]): number {
 export interface DayBar {
   key: string;
   label: string;
-  minutes: number;
+  value: number; // o günün toplam odak dakikası
 }
 
 /** Son N gün için grafik verisi (gün etiketleriyle). */
@@ -37,7 +37,7 @@ export function dailyBars(sessions: StudySession[], days = 7): DayBar[] {
     const d = new Date(key + 'T00:00:00');
     // getDay: 0=Paz; bizim dizimiz Pzt=0
     const idx = (d.getDay() + 6) % 7;
-    return { key, label: tr.history.days[idx], minutes: minutesOnDay(sessions, key) };
+    return { key, label: tr.history.days[idx], value: minutesOnDay(sessions, key) };
   });
 }
 

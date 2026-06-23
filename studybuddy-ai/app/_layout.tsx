@@ -30,6 +30,11 @@ export default function RootLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="onboarding" />
             <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="deneme/index" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen
+              name="deneme/ekle"
+              options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
+            />
           </Stack>
         </View>
       </SafeAreaProvider>

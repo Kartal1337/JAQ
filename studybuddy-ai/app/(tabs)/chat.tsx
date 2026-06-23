@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Txt } from '@/components/Txt';
@@ -28,9 +28,15 @@ export default function ChatScreen() {
   const settings = useStore((s) => s.settings);
   const sessions = useStore((s) => s.sessions);
 
+  const { draft } = useLocalSearchParams<{ draft?: string }>();
   const activeTopic = sessions[0]?.topic;
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [input, setInput] = useState('');
+
+  // Başka ekrandan gelen hazır metni (ör. deneme analizi) giriş alanına koy
+  useEffect(() => {
+    if (draft) setInput(draft);
+  }, [draft]);
   const [busy, setBusy] = useState(false);
   const listRef = useRef<FlatList<UIMessage>>(null);
   const abortRef = useRef<AbortController | null>(null);

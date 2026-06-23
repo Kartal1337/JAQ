@@ -42,8 +42,11 @@ studybuddy-ai/
 │       ├── index.tsx             # 🏠 Ana Sayfa / Dashboard
 │       ├── timer.tsx             # ⏱️ Pomodoro
 │       ├── chat.tsx              # 🤖 AI Koç
-│       ├── history.tsx           # 📊 İlerleme
+│       ├── history.tsx           # 📊 İlerleme (+ Deneme Takibi girişi)
 │       └── profile.tsx           # 👤 Profil & Ayarlar
+│   └── deneme/
+│       ├── index.tsx             # 📝 Denemelerim: net trendi + zayıf konu analizi
+│       └── ekle.tsx              # ➕ Deneme ekleme formu (TYT/AYT net girişi)
 ├── src/
 │   ├── components/               # Yeniden kullanılabilir UI (Button, Card, Txt, ProgressRing, BarChart...)
 │   ├── hooks/usePomodoro.ts      # Zaman damgası tabanlı timer motoru (arka plan güvenli)
@@ -86,6 +89,7 @@ alınır ama UX için **kelime kelime "akıtılır"** (daktilo efekti).
 | **Pomodoro** | 25/5 ↔ 50/10 değiştir, **Başla** → halkanın dolduğunu izle. **Duraklat/Devam**, **Bitir** (≥1 dk sonra seans kaydedilir). Uygulamayı arka plana al, geri gel → süre doğru olmalı. Bittiğinde bildirim + kutlama. |
 | **AI Koç** | Profil'den anahtar gir. Bir soru yaz → cevabın akarak geldiğini gör. Hızlı aksiyonları (Özetle/Quiz/Çöz) dene. |
 | **İlerleme** | Birkaç pomodoro tamamla, haftalık grafiğin ve "en çok çalışılan konular"ın dolduğunu gör. |
+| **Deneme Takibi** | İlerleme ekranındaki mor karta dokun → "+" ile TYT/AYT deneme ekle, her ders için Doğru/Yanlış gir (net otomatik: D − Y/4). Listeye dönünce net trendi, zayıf konular ve "AI'ya Analiz Ettir" görünür. |
 | **Profil** | Ad/anahtar kaydet, sağlayıcı değiştir, bildirim/ses aç-kapa, başarımların açıldığını kontrol et. |
 
 ---

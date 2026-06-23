@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
@@ -9,8 +12,10 @@ import { StatTile } from '@/components/StatTile';
 import { BarChart } from '@/components/BarChart';
 import { useStore } from '@/store/useStore';
 import { tr } from '@/locale/tr';
-import { palette, radius, spacing } from '@/theme/theme';
+import { gradients, palette, radius, spacing } from '@/theme/theme';
 import { formatMinutes } from '@/lib/date';
+import { averageNet } from '@/lib/denemeStats';
+import { formatNet } from '@/constants/yks';
 import {
   bestDayMinutes,
   dailyBars,
@@ -22,6 +27,7 @@ type Range = 'weekly' | 'monthly';
 
 export default function History() {
   const sessions = useStore((s) => s.sessions);
+  const exams = useStore((s) => s.mockExams);
   const [range, setRange] = useState<Range>('weekly');
 
   const bars = useMemo(
@@ -40,6 +46,31 @@ export default function History() {
       <Txt variant="h1" weight="black" style={styles.title}>
         {tr.history.title}
       </Txt>
+
+      {/* Deneme takibi girişi */}
+      <Pressable onPress={() => router.push('/deneme')}>
+        <LinearGradient
+          colors={gradients.brand}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.denemeCard}
+        >
+          <View style={styles.denemeIcon}>
+            <Ionicons name="document-text" size={24} color={palette.white} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Txt variant="h3" weight="bold">
+              {tr.deneme.entryCardTitle}
+            </Txt>
+            <Txt variant="tiny" style={{ color: '#FFFFFFCC' }}>
+              {exams.length > 0
+                ? `${exams.length} deneme · ort. ${formatNet(averageNet(exams))} net`
+                : tr.deneme.entryCardSub}
+            </Txt>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color={palette.white} />
+        </LinearGradient>
+      </Pressable>
 
       {/* Aralık seçimi */}
       <View style={styles.rangeRow}>
@@ -133,6 +164,22 @@ export default function History() {
 
 const styles = StyleSheet.create({
   title: { marginTop: spacing.sm, marginBottom: spacing.lg },
+  denemeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  denemeIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.full,
+    backgroundColor: '#FFFFFF22',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   rangeRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
   chartCard: { paddingVertical: spacing.xl },
   statRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },

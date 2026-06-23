@@ -24,6 +24,24 @@ export interface Profile {
   interests: string[]; // subject id'leri
 }
 
+/** Bir derse ait deneme sonucu. */
+export interface SubjectResult {
+  correct: number;
+  wrong: number;
+}
+
+/** Tek bir deneme sınavı kaydı (TYT veya AYT). */
+export interface MockExam {
+  id: string;
+  date: string; // ISO timestamp
+  dayKey: string; // YYYY-MM-DD (yerel)
+  kind: 'TYT' | 'AYT';
+  fieldId?: string; // AYT için alan (sayisal/ea/sozel)
+  name: string; // deneme adı / yayın
+  results: Record<string, SubjectResult>; // ders anahtarı -> sonuç
+  totalNet: number;
+}
+
 export interface Settings {
   apiKey: string;
   provider: AIProvider;
@@ -44,6 +62,7 @@ interface StoreState {
   profile: Profile;
   settings: Settings;
   sessions: StudySession[];
+  mockExams: MockExam[];
   streak: Streak;
   achievements: string[]; // açılmış başarım id'leri
 
@@ -58,6 +77,8 @@ interface StoreState {
     s: Omit<StudySession, 'id' | 'date' | 'dayKey'>
   ) => { session: StudySession; newAchievements: string[] };
   unlockAchievement: (id: string) => boolean;
+  addMockExam: (e: Omit<MockExam, 'id' | 'date' | 'dayKey'>) => MockExam;
+  deleteMockExam: (id: string) => void;
   resetAll: () => void;
 }
 
@@ -97,6 +118,7 @@ export const useStore = create<StoreState>()(
       profile: defaultProfile,
       settings: defaultSettings,
       sessions: [],
+      mockExams: [],
       streak: defaultStreak,
       achievements: [],
 
@@ -147,12 +169,28 @@ export const useStore = create<StoreState>()(
         return true;
       },
 
+      addMockExam: (input) => {
+        const now = new Date();
+        const exam: MockExam = {
+          ...input,
+          id: `${now.getTime()}-${Math.random().toString(36).slice(2, 7)}`,
+          date: now.toISOString(),
+          dayKey: dayKey(now),
+        };
+        set((s) => ({ mockExams: [exam, ...s.mockExams] }));
+        return exam;
+      },
+
+      deleteMockExam: (id) =>
+        set((s) => ({ mockExams: s.mockExams.filter((e) => e.id !== id) })),
+
       resetAll: () =>
         set({
           onboarded: false,
           profile: defaultProfile,
           settings: defaultSettings,
           sessions: [],
+          mockExams: [],
           streak: defaultStreak,
           achievements: [],
         }),
@@ -165,6 +203,7 @@ export const useStore = create<StoreState>()(
         profile: s.profile,
         settings: s.settings,
         sessions: s.sessions,
+        mockExams: s.mockExams,
         streak: s.streak,
         achievements: s.achievements,
       }),

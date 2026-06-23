@@ -3,26 +3,34 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { gradients, palette, radius, spacing } from '@/theme/theme';
 import { Txt } from './Txt';
-import type { DayBar } from '@/lib/stats';
+
+export interface BarDatum {
+  key: string;
+  label: string;
+  value: number;
+}
 
 interface Props {
-  data: DayBar[];
+  data: BarDatum[];
   height?: number;
+  /** Çubuk üstündeki değeri biçimlendir (varsayılan: tam sayı). */
+  formatValue?: (v: number) => string;
 }
 
 /** Basit, animasyonlu dikey çubuk grafik (ek bağımlılık gerektirmez). */
-export function BarChart({ data, height = 160 }: Props) {
-  const max = Math.max(1, ...data.map((d) => d.minutes));
+export function BarChart({ data, height = 160, formatValue }: Props) {
+  const max = Math.max(1, ...data.map((d) => d.value));
+  const fmt = formatValue ?? ((v: number) => String(Math.round(v)));
 
   return (
     <View style={[styles.wrap, { height: height + 28 }]}>
       {data.map((bar, i) => {
-        const ratio = bar.minutes / max;
+        const ratio = bar.value / max;
         const barHeight = Math.max(4, ratio * height);
         return (
           <View key={bar.key} style={styles.col}>
-            <Txt variant="tiny" tone="faint" style={styles.value}>
-              {bar.minutes > 0 ? bar.minutes : ''}
+            <Txt variant="tiny" tone="faint" style={styles.value} numberOfLines={1}>
+              {bar.value > 0 ? fmt(bar.value) : ''}
             </Txt>
             <View style={[styles.track, { height }]}>
               <Animated.View
@@ -30,12 +38,16 @@ export function BarChart({ data, height = 160 }: Props) {
                 style={{ height: barHeight }}
               >
                 <LinearGradient
-                  colors={bar.minutes > 0 ? gradients.brandVertical : [palette.surfaceAlt, palette.surfaceAlt]}
+                  colors={
+                    bar.value > 0
+                      ? gradients.brandVertical
+                      : [palette.surfaceAlt, palette.surfaceAlt]
+                  }
                   style={styles.bar}
                 />
               </Animated.View>
             </View>
-            <Txt variant="tiny" tone="muted" weight="medium">
+            <Txt variant="tiny" tone="muted" weight="medium" numberOfLines={1}>
               {bar.label}
             </Txt>
           </View>
