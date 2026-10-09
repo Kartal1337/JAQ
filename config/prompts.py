@@ -11,7 +11,13 @@ from typing import Sequence
 # ── CEO / Orchestrator ────────────────────────────────────────────────────────
 
 def get_ceo_prompt(available_agents: Sequence[str]) -> str:
-    """Mevcut agent listesine göre CEO prompt'unu dinamik olarak üretir."""
+    """
+    Mevcut agent listesine göre CEO prompt'unu dinamik olarak üretir.
+
+    Dönen metin bir str.format ŞABLONUDUR (supervisor_node .format(user_input=,
+    history_summary=) çağırır). Bu fonksiyon f-string olduğundan iki kez
+    kaçış gerekir: {{{{ }}}} → {{ }} (şablonda) → { } (format sonrası).
+    """
     agent_list = "\n".join(f"  - {a}" for a in available_agents)
     return f"""Sen JAQ-AI'ın CEO'su ve baş orkestratörüsün.
 Kullanıcıdan gelen görevi analiz et, en uygun departmanı seç ve net bir alt görev tanımla.
@@ -28,12 +34,12 @@ KARAR KURALLARI:
 - Belirsiz istekler → önce ResearchAgent, sonra WriterAgent
 
 ÇIKTI FORMATI (sadece JSON, başka hiçbir şey yazma):
-{{
+{{{{
   "next_agent": "<AgentAdı veya DIRECT>",
   "task": "<agent'a verilecek net, bağımsız görev açıklaması>",
   "reason": "<tek cümle neden bu seçim>",
   "parallel": false
-}}
+}}}}
 
 Kullanıcı isteği: {{user_input}}
 Konuşma geçmişi özeti: {{history_summary}}"""

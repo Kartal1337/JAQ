@@ -15,6 +15,7 @@ Akış:
 """
 
 import logging
+from contextlib import asynccontextmanager
 from typing import Literal, Annotated
 
 from pydantic import BaseModel, Field
@@ -26,7 +27,7 @@ from typing_extensions import TypedDict
 
 from config.settings import get_settings
 from config.prompts import get_ceo_prompt, DIRECT_RESPONSE_PROMPT, AVAILABLE_AGENTS
-from memory.database import get_checkpointer, get_memory_manager
+from memory.database import open_async_checkpointer, get_memory_manager
 from agents.research_agent import ResearchAgent
 from agents.writer_agent import WriterAgent
 from agents.market_analysis_agent import MarketAnalysisAgent
@@ -81,7 +82,7 @@ def _get_llm() -> ChatAnthropic:
 
 # ── 4. Supervisor Node (CEO) ───────────────────────────────────────────────────
 
-def supervisor_node(state: JAQState) -> dict:
+async def supervisor_node(state: JAQState) -> dict:
     """
     CEO kararı: kullanıcı mesajını + geçmiş özeti okur,
     structured output ile hangi agent'ın çalışacağına karar verir.
@@ -96,7 +97,7 @@ def supervisor_node(state: JAQState) -> dict:
 
     try:
         structured_llm = llm.with_structured_output(CEODecision)
-        decision: CEODecision = structured_llm.invoke(formatted_prompt)
+        decision: CEODecision = await structured_llm.ainvoke(formatted_prompt)
         logger.info(f"CEO kararı → agent={decision.next_agent}, reason={decision.reason}")
         return {
             "next_agent": decision.next_agent,
@@ -115,12 +116,12 @@ def supervisor_node(state: JAQState) -> dict:
 
 # ── 5. Direct Response Node ───────────────────────────────────────────────────
 
-def direct_node(state: JAQState) -> dict:
+async def direct_node(state: JAQState) -> dict:
     """Agent gerektirmeyen yanıtlar (selamlama, basit soru vb.)."""
     llm = _get_llm()
     prompt = DIRECT_RESPONSE_PROMPT.format(user_input=state["user_input"])
     try:
-        response = llm.invoke(prompt)
+        response = await llm.ainvoke(prompt)
         text = response.content
     except Exception as e:
         logger.error(f"Direct node hatası: {e}")
@@ -135,18 +136,18 @@ def direct_node(state: JAQState) -> dict:
 
 # ── 6. Gerçek Agent Node'ları ──────────────────────────────────────────────────
 
-def _run_agent(agent_cls, state: JAQState) -> dict:
+async def _run_agent(agent_cls, state: JAQState) -> dict:
     """
-    Verilen agent sınıfını instantiate edip asenkron run() metodunu çalıştırır.
-    LangGraph node'ları sync olduğundan asyncio.run() kullanır.
+    Verilen agent sınıfını instantiate edip async run() metodunu await eder.
+    Node'lar async olduğundan graph'ın event loop'u içinde çalışır
+    (asyncio.run() gerekmez; çalışan loop içinde zaten kullanılamaz).
     """
-    import asyncio
     task = state.get("task") or state["user_input"]
     chat_id = state["chat_id"]
 
     try:
         agent = agent_cls()
-        result = asyncio.run(agent.run(task=task, chat_id=chat_id))
+        result = await agent.run(task=task, chat_id=chat_id)
         output = result.output if result.success else f"Hata: {result.error}"
     except Exception as e:
         logger.error(f"{agent_cls.__name__} node hatası: {e}", exc_info=True)
@@ -159,17 +160,17 @@ def _run_agent(agent_cls, state: JAQState) -> dict:
     }
 
 
-def research_node(state: JAQState) -> dict:
-    return _run_agent(ResearchAgent, state)
+async def research_node(state: JAQState) -> dict:
+    return await _run_agent(ResearchAgent, state)
 
-def writer_node(state: JAQState) -> dict:
-    return _run_agent(WriterAgent, state)
+async def writer_node(state: JAQState) -> dict:
+    return await _run_agent(WriterAgent, state)
 
-def market_node(state: JAQState) -> dict:
-    return _run_agent(MarketAnalysisAgent, state)
+async def market_node(state: JAQState) -> dict:
+    return await _run_agent(MarketAnalysisAgent, state)
 
-def code_node(state: JAQState) -> dict:
-    return _run_agent(CodeAgent, state)
+async def code_node(state: JAQState) -> dict:
+    return await _run_agent(CodeAgent, state)
 
 
 # ── 7. Routing Fonksiyonu ─────────────────────────────────────────────────────
@@ -223,19 +224,18 @@ def build_graph() -> StateGraph:
     return graph
 
 
-# ── 9. Compiled Graph (Checkpointer ile) ─────────────────────────────────────
+# ── 9. Compiled Graph (Async Checkpointer ile) ────────────────────────────────
 
-_compiled_graph = None
+@asynccontextmanager
+async def compiled_graph():
+    """
+    Async SQLite checkpointer bağlı graph'ı derler; çıkışta bağlantıyı kapatır.
 
-
-def get_compiled_graph():
-    """Graph'ı bir kez derler, checkpointer bağlar, cache'de tutar."""
-    global _compiled_graph
-    if _compiled_graph is None:
-        checkpointer = get_checkpointer()
-        _compiled_graph = build_graph().compile(checkpointer=checkpointer)
-        logger.info("LangGraph compiled, checkpointer bağlandı.")
-    return _compiled_graph
+    Graph derlemek ucuzdur ve bağlantı çağrı başınadır (bkz. open_async_checkpointer):
+    global cache yok → event loop'a bağlı kalıntı, kapanmayan thread yok.
+    """
+    async with open_async_checkpointer() as checkpointer:
+        yield build_graph().compile(checkpointer=checkpointer)
 
 
 # ── 10. Ana Entry Point ───────────────────────────────────────────────────────
@@ -270,8 +270,8 @@ async def process_message(chat_id: int, user_input: str) -> tuple[str, str]:
     result = {}
 
     try:
-        graph = get_compiled_graph()
-        result = await graph.ainvoke(initial_state, config=config)
+        async with compiled_graph() as graph:
+            result = await graph.ainvoke(initial_state, config=config)
         final = result.get("final_response", "Bir yanıt üretilemedi.")
     except Exception as e:
         logger.error(f"Graph invoke hatası: {e}", exc_info=True)

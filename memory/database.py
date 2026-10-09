@@ -23,6 +23,8 @@ JAQ-AI v2.0 — Hibrit Hafıza Katmanı
 
 import sqlite3
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -30,6 +32,7 @@ from datetime import datetime, timezone
 from langchain_chroma import Chroma
 from langchain_community.embeddings import SentenceTransformerEmbeddings
 from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from config.settings import get_settings
 
@@ -81,6 +84,24 @@ def get_checkpointer() -> SqliteSaver:
         _checkpointer = SqliteSaver(conn)
         logger.info(f"LangGraph checkpointer hazır → {db_path}")
     return _checkpointer
+
+
+@asynccontextmanager
+async def open_async_checkpointer() -> AsyncIterator[AsyncSqliteSaver]:
+    """
+    graph.ainvoke() için async checkpointer — SqliteSaver async metotları desteklemez.
+
+    Bağlantı ÇAĞRI BAŞINA açılıp kapanır (global singleton değil), çünkü:
+      - AsyncSqliteSaver yaratıldığı event loop'a bağlanır; Telegram, FastAPI ve
+        testler farklı loop'larda çalışır.
+      - aiosqlite worker thread'i daemon değildir; kapatılmayan bağlantı çıkışta
+        süreci asılı bırakır. `async with` kapanışı garanti eder.
+    Mesaj başına bir SQLite bağlantısı bu trafik için ihmal edilebilir maliyettir.
+    """
+    db_path = Path(settings.checkpoint_db_path)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    async with AsyncSqliteSaver.from_conn_string(str(db_path)) as saver:
+        yield saver
 
 
 # ── Veri Modeli ───────────────────────────────────────────────────────────────
