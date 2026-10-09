@@ -288,3 +288,50 @@ async def test_checkpointer_connection_is_closed_on_exit_and_on_error(jaq):
             raise RuntimeError("boom")
     with pytest.raises(ValueError):                    # hata yolunda da kapanır
         await conn.execute("SELECT 1")
+
+
+@pytest.mark.asyncio
+async def test_blocking_memory_calls_do_not_stall_the_event_loop(jaq, monkeypatch):
+    """
+    get_memory_manager (ilk çağrıda 572M embedding modelini yükler), get_history_summary
+    ve save_turn senkron/CPU-ağırdır; loop'u bloklarsa Telegram'ın wait_for timeout'u
+    ve dashboard WebSocket'i de donar.
+    """
+    class SlowMemory(FakeMemory):
+        def get_history_summary(self, limit=None):
+            time.sleep(0.4)
+            return "Önceki konuşma yok."
+
+        def save_turn(self, user_msg, assistant_msg, agent="DIRECT"):
+            time.sleep(0.4)
+            super().save_turn(user_msg, assistant_msg, agent)
+
+    slow = SlowMemory()
+
+    def cold_get_memory_manager(chat_id):
+        time.sleep(0.4)                                # soğuk model yüklemesi
+        return slow
+
+    monkeypatch.setattr(jaq.orchestrator, "get_memory_manager", cold_get_memory_manager)
+    jaq.use_llm(FakeLLM(decision=_decision("DIRECT"), reply="R"))
+
+    gaps: list[float] = []
+
+    async def heartbeat():
+        last = time.monotonic()
+        while True:
+            await asyncio.sleep(0.02)
+            now = time.monotonic()
+            gaps.append(now - last)
+            last = now
+
+    beat = asyncio.create_task(heartbeat())
+    await asyncio.sleep(0.1)                           # heartbeat gerçekten dönmeye başlasın
+    try:
+        assert await jaq.orchestrator.process_message(9, "merhaba") == ("R", "DIRECT")
+        await asyncio.sleep(0.1)                       # son bloklamanın aralığı da kaydedilsin
+    finally:
+        beat.cancel()
+
+    assert slow.saved == [("merhaba", "R", "DIRECT")]
+    assert max(gaps) < 0.25, f"event loop {max(gaps):.2f} sn bloklandı"

@@ -14,6 +14,7 @@ Akış:
   - Timeout + hata yönetimi
 """
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import Literal, Annotated
@@ -250,8 +251,10 @@ async def process_message(chat_id: int, user_input: str) -> tuple[str, str]:
     Returns:
         (final_response, agent_name) — yanıt metni + kullanılan agent adı
     """
-    memory = get_memory_manager(chat_id)
-    history_summary = memory.get_history_summary()
+    # Bellek katmanı senkron ve CPU/IO-ağır (ilk çağrıda embedding modeli yüklenir);
+    # event loop'u bloklamaması için thread'e alınır → wait_for timeout'u ve WS çalışır.
+    memory = await asyncio.to_thread(get_memory_manager, chat_id)
+    history_summary = await asyncio.to_thread(memory.get_history_summary)
 
     initial_state: JAQState = {
         "messages":        [HumanMessage(content=user_input)],
@@ -280,7 +283,9 @@ async def process_message(chat_id: int, user_input: str) -> tuple[str, str]:
     agent_used = result.get("next_agent", "DIRECT") or "DIRECT"
 
     try:
-        memory.save_turn(user_msg=user_input, assistant_msg=final, agent=agent_used)
+        await asyncio.to_thread(
+            memory.save_turn, user_msg=user_input, assistant_msg=final, agent=agent_used,
+        )
     except Exception as e:
         logger.warning(f"Hafıza kayıt hatası: {e}")
 

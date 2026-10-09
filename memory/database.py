@@ -23,6 +23,7 @@ JAQ-AI v2.0 — Hibrit Hafıza Katmanı
 
 import sqlite3
 import logging
+import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -43,6 +44,7 @@ settings = get_settings()
 # ── Embedding Model (singleton) ───────────────────────────────────────────────
 
 _embeddings: SentenceTransformerEmbeddings | None = None
+_embeddings_lock = threading.Lock()   # process_message bellek çağrılarını thread'e alır
 
 
 def get_embeddings() -> SentenceTransformerEmbeddings:
@@ -59,10 +61,12 @@ def get_embeddings() -> SentenceTransformerEmbeddings:
     """
     global _embeddings
     if _embeddings is None:
-        model = "intfloat/multilingual-e5-large-instruct"
-        logger.info(f"Embedding modeli yükleniyor: {model}")
-        _embeddings = SentenceTransformerEmbeddings(model_name=model)
-        logger.info("Embedding modeli hazır.")
+        with _embeddings_lock:                       # soğuk başlangıçta modeli tek sefer yükle
+            if _embeddings is None:
+                model = "intfloat/multilingual-e5-large-instruct"
+                logger.info(f"Embedding modeli yükleniyor: {model}")
+                _embeddings = SentenceTransformerEmbeddings(model_name=model)
+                logger.info("Embedding modeli hazır.")
     return _embeddings
 
 
@@ -296,6 +300,7 @@ class MemoryManager:
 # ── Memory Manager Cache (chat_id başına singleton) ──────────────────────────
 
 _managers: dict[int, MemoryManager] = {}
+_managers_lock = threading.Lock()
 
 
 def get_memory_manager(chat_id: int) -> MemoryManager:
@@ -304,5 +309,7 @@ def get_memory_manager(chat_id: int) -> MemoryManager:
     Birden fazla kez çağrılsa da aynı instance'ı verir.
     """
     if chat_id not in _managers:
-        _managers[chat_id] = MemoryManager(chat_id)
+        with _managers_lock:
+            if chat_id not in _managers:
+                _managers[chat_id] = MemoryManager(chat_id)
     return _managers[chat_id]
