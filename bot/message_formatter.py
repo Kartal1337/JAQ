@@ -82,12 +82,14 @@ def format_welcome(bot_username: str = "JAQ") -> str:
 
 
 
-def format_status(agents: list[str], model: str, memory_entries: int) -> str:
+def format_status(agents: list[str], model: str, memory_entries: int | None) -> str:
+    """memory_entries=None → hafıza devre dışı (0 kayıttan farklıdır)."""
+    memory_line = "devre dışı" if memory_entries is None else f"{memory_entries} kayıt"
     agent_lines = "\n".join(f"  ✅ {a}" for a in agents)
     return (
         f"📡 *JAQ Sistem Durumu*\n\n"
         f"*Model:* `{model}`\n"
-        f"*Hafıza:* {memory_entries} kayıt\n\n"
+        f"*Hafıza:* {memory_line}\n\n"
         f"*Aktif Departmanlar:*\n{agent_lines}"
     )
 
@@ -164,14 +166,21 @@ def format_debug(
         f"  • {escape_mdv2(k)}: {v}" for k, v in agent_usage.items()
     ) or "  _Veri yok_"
 
+    if memory_stats.get("enabled") is False:     # kapalı ≠ boş
+        memory_block = "*Hafıza:* devre dışı\n\n"
+    else:
+        memory_block = (
+            f"*Hafıza:*\n"
+            f"  • Toplam kayıt: `{memory_stats.get('total', 0)}`\n"
+            f"  • Konuşma turu: `{memory_stats.get('turns', 0)}`\n"
+            f"  • Agent dağılımı:\n{usage_lines}\n\n"
+        )
+
     return (
         f"🔧 *Debug Bilgisi*\n\n"
         f"*Kimlik:* `{chat_id}`\n"
         f"*Model:* `{escape_mdv2(model)}`\n\n"
-        f"*Hafıza:*\n"
-        f"  • Toplam kayıt: `{memory_stats.get('total', 0)}`\n"
-        f"  • Konuşma turu: `{memory_stats.get('turns', 0)}`\n"
-        f"  • Agent dağılımı:\n{usage_lines}\n\n"
+        f"{memory_block}"
         f"*Rate Limit:*\n"
         f"  • Kullanılan: `{rate_stats.get('used', 0)}/{rate_stats.get('limit', 0)}`\n"
         f"  • Kalan: `{rate_stats.get('remaining', 0)}`\n"

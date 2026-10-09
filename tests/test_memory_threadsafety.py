@@ -53,6 +53,7 @@ def test_one_memory_manager_per_chat_under_concurrent_cold_start(monkeypatch):
 
     monkeypatch.setattr(database, "MemoryManager", FakeManager)
     monkeypatch.setattr(database, "_managers", {})
+    monkeypatch.setattr(database.settings, "memory_enabled", True)   # varsayılan kapalı
 
     results = _run_concurrently(lambda: database.get_memory_manager(7))
 

@@ -24,6 +24,7 @@ JAQ-AI v2.0 — Hibrit Hafıza Katmanı
 import sqlite3
 import logging
 import threading
+import warnings
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -77,9 +78,16 @@ _checkpointer: SqliteSaver | None = None
 
 def get_checkpointer() -> SqliteSaver:
     """
-    LangGraph graph state'ini SQLite'a persist eden checkpointer.
-    Thread-safe bağlantı (check_same_thread=False).
+    DEPRECATED — orkestratör artık open_async_checkpointer() kullanır.
+
+    Senkron SqliteSaver graph.ainvoke() ile ÇALIŞMAZ (async metotları desteklemez).
+    Yalnızca eski/senkron kullanıcılar için bırakıldı; sonraki aşamada kaldırılabilir.
     """
+    warnings.warn(
+        "get_checkpointer() deprecated: async graph'lar için open_async_checkpointer() kullanın.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     global _checkpointer
     if _checkpointer is None:
         db_path = Path(settings.checkpoint_db_path)
@@ -97,9 +105,9 @@ async def open_async_checkpointer() -> AsyncIterator[AsyncSqliteSaver]:
 
     Bağlantı ÇAĞRI BAŞINA açılıp kapanır (global singleton değil), çünkü:
       - AsyncSqliteSaver yaratıldığı event loop'a bağlanır; Telegram, FastAPI ve
-        testler farklı loop'larda çalışır.
-      - aiosqlite worker thread'i daemon değildir; kapatılmayan bağlantı çıkışta
-        süreci asılı bırakır. `async with` kapanışı garanti eder.
+        testler farklı loop'larda çalışır → loop başına cache/lifecycle kodu gerekirdi.
+      - `async with` bağlantıyı (hata ve iptal yollarında da) deterministik kapatır;
+        kapanışı nesnenin GC ile toplanmasına bırakmaz.
     Mesaj başına bir SQLite bağlantısı bu trafik için ihmal edilebilir maliyettir.
     """
     db_path = Path(settings.checkpoint_db_path)
@@ -130,6 +138,8 @@ class MemoryManager:
         context = manager.get_relevant_context("rakip analizi")
         history = manager.get_recent_history(limit=5)
     """
+
+    enabled = True
 
     def __init__(self, chat_id: int):
         self.chat_id = chat_id
@@ -297,6 +307,48 @@ class MemoryManager:
             return 0
 
 
+# ── Devre Dışı Hafıza (MEMORY_ENABLED=false) ─────────────────────────────────
+
+class NullMemoryManager:
+    """
+    MemoryManager ile aynı arayüz, sıfır yan etki.
+
+    ChromaDB'ye, embedding modeline ve diske dokunmaz; durumsuzdur (thread-safe).
+    Mevcut Chroma verisini silmez/değiştirmez. Çağıranlar `enabled` ile "bellek kapalı"
+    ile "bellek boş"u ayırt edebilir.
+    """
+
+    enabled = False
+    chat_id = None
+
+    def save_turn(self, user_msg: str, assistant_msg: str, agent: str = "DIRECT") -> None:
+        return None
+
+    def get_relevant_context(self, query: str, k: int = 4) -> str:
+        return ""
+
+    def get_recent_history(self, limit: int | None = None) -> list[MemoryEntry]:
+        return []
+
+    def get_history_summary(self, limit: int | None = None) -> str:
+        return "Hafıza devre dışı; önceki konuşma bağlamı yok."
+
+    def export_history(self, limit: int = 50) -> str:
+        return "Hafıza devre dışı (MEMORY_ENABLED=false); dışa aktarılacak kayıt yok."
+
+    def get_memory_stats(self) -> dict:
+        return {
+            "enabled": False, "total": 0, "turns": 0,
+            "user_messages": 0, "agent_messages": 0, "agent_usage": {},
+        }
+
+    def clear_user_memory(self) -> int:
+        return 0
+
+
+_NULL_MEMORY = NullMemoryManager()
+
+
 # ── Memory Manager Cache (chat_id başına singleton) ──────────────────────────
 
 _managers: dict[int, MemoryManager] = {}
@@ -307,7 +359,12 @@ def get_memory_manager(chat_id: int) -> MemoryManager:
     """
     Her chat_id için bir MemoryManager instance'ı döner.
     Birden fazla kez çağrılsa da aynı instance'ı verir.
+
+    MEMORY_ENABLED=false ise Chroma/embedding'e hiç dokunmadan NullMemoryManager döner;
+    gerçek yönetici önbelleği korunur (bayrak tekrar açılınca kaldığı yerden devam).
     """
+    if not settings.memory_enabled:
+        return _NULL_MEMORY
     if chat_id not in _managers:
         with _managers_lock:
             if chat_id not in _managers:

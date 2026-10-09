@@ -35,6 +35,13 @@ class Settings(BaseSettings):
     chroma_persist_dir: str = Field(default="./data/chroma_db")
     chroma_collection_prefix: str = Field(default="jaq_user")
     memory_history_limit: int = Field(default=10)
+    memory_enabled: bool = Field(
+        default=False,
+        description=(
+            "Varsayılan KAPALI: açmak bilinçli .env kararıdır (ilk kullanımda ~2 GB E5 modeli "
+            "indirir). False → ChromaDB/embedding hiç başlatılmaz (NullMemoryManager)"
+        ),
+    )
 
     # ── LangGraph Checkpointing ────────────────────────────────────────────
     checkpoint_db_path: str = Field(default="./data/checkpoints.db")
@@ -44,6 +51,12 @@ class Settings(BaseSettings):
     log_file: str = Field(default="./data/logs/jaq.log")
     debug_mode: bool = Field(default=False)
     agent_timeout_seconds: int = Field(default=60)
+
+    # ── Dashboard API ───────────────────────────────────────────────────────
+    # API'de kimlik doğrulaması YOK → varsayılan yalnızca yerel makine; ağa açmak bilinçli karar.
+    api_host: str = Field(default="127.0.0.1")
+    api_port: int = Field(default=8000, ge=1, le=65535)
+    api_reload: bool = Field(default=False)
 
     # ── Rate Limiting ───────────────────────────────────────────────────────
     rate_limit_requests: int = Field(default=20, description="Pencere başına max istek")

@@ -75,6 +75,12 @@ _AGENT_DESCRIPTIONS: dict[str, str] = {
 
 # ── Yardımcılar ───────────────────────────────────────────────────────────────
 
+MEMORY_OFF_TEXT = (
+    "💤 Hafıza devre dışı (MEMORY_ENABLED=false). "
+    "Geçmiş kaydedilmiyor ve okunmuyor; mevcut kayıtlara dokunulmadı."
+)
+
+
 def _authorized(update: Update) -> bool:
     return update.effective_chat.id == settings.telegram_chat_id
 
@@ -160,10 +166,11 @@ async def cmd_agents(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not _authorized(update):
         return
-    entries = get_memory_manager(update.effective_chat.id).get_recent_history(limit=100)
+    memory = get_memory_manager(update.effective_chat.id)
+    memory_entries = len(memory.get_recent_history(limit=100)) if memory.enabled else None
     await _send(
         update,
-        format_status(agents=AVAILABLE_AGENTS, model=settings.model_name, memory_entries=len(entries)),
+        format_status(agents=AVAILABLE_AGENTS, model=settings.model_name, memory_entries=memory_entries),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
@@ -171,14 +178,22 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 async def cmd_history(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not _authorized(update):
         return
-    entries = get_memory_manager(update.effective_chat.id).get_recent_history(limit=10)
+    memory = get_memory_manager(update.effective_chat.id)
+    if not memory.enabled:
+        await update.message.reply_text(MEMORY_OFF_TEXT)
+        return
+    entries = memory.get_recent_history(limit=10)
     await _send(update, format_history(entries), parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def cmd_clear(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not _authorized(update):
         return
-    count = get_memory_manager(update.effective_chat.id).clear_user_memory()
+    memory = get_memory_manager(update.effective_chat.id)
+    if not memory.enabled:
+        await update.message.reply_text(MEMORY_OFF_TEXT)
+        return
+    count = memory.clear_user_memory()
     await update.message.reply_text(
         f"🗑 Hafıza temizlendi — {count} kayıt silindi\\.",
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -225,6 +240,9 @@ async def cmd_export(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         return
     chat_id = update.effective_chat.id
     memory = get_memory_manager(chat_id)
+    if not memory.enabled:
+        await update.message.reply_text(MEMORY_OFF_TEXT)
+        return
 
     # Limit: context.args'dan al, yoksa 50
     limit = 50

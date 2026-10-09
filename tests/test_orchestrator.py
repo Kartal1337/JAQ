@@ -335,3 +335,43 @@ async def test_blocking_memory_calls_do_not_stall_the_event_loop(jaq, monkeypatc
 
     assert slow.saved == [("merhaba", "R", "DIRECT")]
     assert max(gaps) < 0.25, f"event loop {max(gaps):.2f} sn bloklandı"
+
+
+# ── MEMORY_ENABLED=false ──────────────────────────────────────────────────────
+
+@pytest.fixture
+def jaq_memory_off(jaq, monkeypatch):
+    """Gerçek get_memory_manager, bayrak kapalı; Chroma/embedding'e dokunmak patlatır."""
+    from memory import database
+
+    def boom(*_a, **_k):
+        raise AssertionError("bellek kapalıyken Chroma/embedding başlatıldı")
+
+    monkeypatch.setattr(database.settings, "memory_enabled", False)
+    monkeypatch.setattr(database, "_managers", {})
+    monkeypatch.setattr(database, "Chroma", boom)
+    monkeypatch.setattr(database, "SentenceTransformerEmbeddings", boom)
+    monkeypatch.setattr(jaq.orchestrator, "get_memory_manager", database.get_memory_manager)
+    monkeypatch.setattr("agents.base_agent.get_memory_manager", database.get_memory_manager)
+    return jaq
+
+
+@pytest.mark.asyncio
+async def test_memory_off_direct_path_works_and_checkpoint_is_still_written(jaq_memory_off):
+    jaq = jaq_memory_off
+    jaq.use_llm(FakeLLM(decision=_decision("DIRECT"), reply="Merhaba!"))
+
+    assert await jaq.orchestrator.process_message(42, "selam") == ("Merhaba!", "DIRECT")
+    assert await _read_thread_messages(jaq.db_path, "42") == ["selam", "Merhaba!"]
+    assert jaq.memory.saved == []                      # sahte (açık) bellek hiç kullanılmadı
+
+
+@pytest.mark.asyncio
+async def test_memory_off_specialist_path_works(jaq_memory_off):
+    jaq = jaq_memory_off
+    jaq.use_llm(FakeLLM(decision=_decision("CodeAgent", task="topla fonksiyonu"), reply="def add(a, b): ..."))
+
+    response, agent = await jaq.orchestrator.process_message(42, "bir fonksiyon yaz")
+
+    assert (response, agent) == ("def add(a, b): ...", "CodeAgent")
+    assert await _read_thread_messages(jaq.db_path, "42") == ["bir fonksiyon yaz", "def add(a, b): ..."]

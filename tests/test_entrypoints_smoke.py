@@ -239,3 +239,35 @@ async def test_supervisor_with_real_chain_routes_valid_decision(anthropic_wire):
     assert update == {"next_agent": "CodeAgent", "task": "t", "reason": "r"}
     prompt_text = anthropic_wire.seen["messages"][0].content
     assert "kod yaz" in prompt_text and '"next_agent"' in prompt_text
+
+
+# ── Telegram komutları: MEMORY_ENABLED=false ──────────────────────────────────
+
+@pytest.fixture
+def memory_off(monkeypatch):
+    from memory import database
+
+    def boom(*_a, **_k):
+        raise AssertionError("bellek kapalıyken Chroma/embedding başlatıldı")
+
+    monkeypatch.setattr(database.settings, "memory_enabled", False)
+    monkeypatch.setattr(database, "_managers", {})
+    monkeypatch.setattr(database, "Chroma", boom)
+    monkeypatch.setattr(database, "SentenceTransformerEmbeddings", boom)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("command", ["cmd_history", "cmd_clear", "cmd_export", "cmd_status", "cmd_debug"])
+async def test_memory_commands_say_memory_is_off_instead_of_faking_empty_results(
+    telegram, memory_off, command,
+):
+    update = _fake_update(telegram.module.settings.telegram_chat_id, "/x")
+    context = _fake_context()
+    context.args = []
+
+    await getattr(telegram.module, command)(update, context)
+
+    texts = " ".join(c.args[0] for c in update.message.reply_text.await_args_list)
+    assert "devre dışı" in texts
+    for misleading in ("silindi", "Henüz kayıtlı", "bulunamadı", "0 kayıt"):
+        assert misleading not in texts

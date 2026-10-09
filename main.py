@@ -57,12 +57,17 @@ def main() -> None:
     else:
         # Dashboard modu (varsayılan)
         import uvicorn
-        logger.info("Mod: FastAPI Dashboard → http://localhost:8000")
+        logger.info(f"Mod: FastAPI Dashboard → http://{settings.api_host}:{settings.api_port}")
+        if settings.api_host not in ("127.0.0.1", "localhost", "::1"):
+            logger.warning(
+                f"API {settings.api_host} adresine bağlanıyor ama kimlik doğrulaması yok: "
+                "/task, /tasks ve /ws ağdaki herkese açık olur."
+            )
         uvicorn.run(
             "api.server:app",
-            host="0.0.0.0",
-            port=8000,
-            reload=True,
+            host=settings.api_host,
+            port=settings.api_port,
+            reload=settings.api_reload,
             log_level=settings.log_level.lower(),
         )
 
