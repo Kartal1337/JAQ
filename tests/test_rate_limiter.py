@@ -18,9 +18,20 @@ def test_ilk_istek_gecerli(limiter):
     assert info["type"] == "ok"
 
 
-def test_limit_dolunca_reddedilir(limiter):
+def test_limit_dolunca_reddedilir(limiter, monkeypatch):
+    """
+    Pencere limiti ancak istekler burst penceresine (10 sn) sığmayacak kadar
+    aralıklıysa devreye girer; burst kontrolü pencere kontrolünden önce çalışır.
+    Bu yüzden saati kontrollü ilerletiyoruz.
+    """
+    now = [1000.0]
+    monkeypatch.setattr("core.rate_limiter.time.monotonic", lambda: now[0])
+
     for _ in range(5):
-        limiter.check(chat_id=2)
+        allowed, _info = limiter.check(chat_id=2)
+        assert allowed is True
+        now[0] += 11  # burst penceresinin (10 sn) dışına çık
+
     allowed, info = limiter.check(chat_id=2)
     assert allowed is False
     assert info["type"] == "window"

@@ -221,7 +221,12 @@ async def test_repeated_and_concurrent_calls_in_one_loop(jaq):
 
 
 def test_separate_event_loops_share_one_database_without_leaking_threads(jaq):
-    """Her asyncio.run() yeni bir loop'tur; eski loop'a bağlı kalıntı olmamalı."""
+    """
+    Her asyncio.run() yeni bir loop'tur; eski loop'a bağlı kalıntı olmamalı.
+
+    Not: thread sayısı tek başına "bağlantı kapandı" kanıtı DEĞİLDİR (aiosqlite thread'i
+    nesne finalize olunca da durur); deterministik kapanış ayrı test edilir.
+    """
     jaq.use_llm(FakeLLM(decision=_decision("DIRECT"), reply="R"))
     threads_before = threading.active_count()
 
@@ -236,3 +241,50 @@ def test_separate_event_loops_share_one_database_without_leaking_threads(jaq):
     while threading.active_count() > threads_before and time.monotonic() < deadline:
         time.sleep(0.05)
     assert threading.active_count() <= threads_before, "SQLite bağlantı thread'i sızdı"
+
+
+@pytest.mark.asyncio
+async def test_timeout_cancellation_closes_connection_and_db_stays_usable(jaq):
+    """Telegram'daki asyncio.wait_for timeout'u uçuştaki graph'ı iptal eder."""
+    class SlowLLM(FakeLLM):
+        async def ainvoke(self, prompt):
+            await asyncio.sleep(30)
+
+    def own_threads() -> int:
+        # asyncio_N = çalışan event loop'un kendi default executor'ı; loop kapanınca ölür.
+        return sum(not t.name.startswith("asyncio_") for t in threading.enumerate())
+
+    jaq.use_llm(SlowLLM(decision=_decision("DIRECT")))
+    threads_before = own_threads()
+
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(jaq.orchestrator.process_message(5, "ilk"), timeout=0.5)
+
+    deadline = time.monotonic() + 3
+    while own_threads() > threads_before and time.monotonic() < deadline:
+        await asyncio.sleep(0.05)
+    assert own_threads() <= threads_before, "iptal sonrası SQLite thread'i sızdı"
+    assert jaq.memory.saved == []                      # iptal edilen tur hafızaya yazılmadı
+
+    jaq.use_llm(FakeLLM(decision=_decision("DIRECT"), reply="R"))
+    assert await jaq.orchestrator.process_message(5, "yeni") == ("R", "DIRECT")
+    assert (await _read_thread_messages(jaq.db_path, "5"))[-2:] == ["yeni", "R"]
+
+
+@pytest.mark.asyncio
+async def test_checkpointer_connection_is_closed_on_exit_and_on_error(jaq):
+    """Kapanışı thread sayısıyla değil, bağlantının kendisiyle doğrula."""
+    from memory.database import open_async_checkpointer
+
+    async with open_async_checkpointer() as saver:
+        conn = saver.conn
+        await conn.execute("SELECT 1")                 # içeride açık
+    with pytest.raises(ValueError):                    # aiosqlite: kapalı bağlantı
+        await conn.execute("SELECT 1")
+
+    with pytest.raises(RuntimeError, match="boom"):
+        async with open_async_checkpointer() as saver:
+            conn = saver.conn
+            raise RuntimeError("boom")
+    with pytest.raises(ValueError):                    # hata yolunda da kapanır
+        await conn.execute("SELECT 1")
